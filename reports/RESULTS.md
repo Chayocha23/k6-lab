@@ -42,3 +42,37 @@ The test sends one HTTP request to the Pizza API and verifies three conditions: 
 - **Average iteration duration:** 1.89 seconds
 
 The test sends a POST request to the Pizza API without a token and expects a 401 Unauthorized response. The check passes because the API correctly refuses the request. The `http.expectedStatuses(401)` configuration tells k6 to treat status 401 as an expected response, so `http_req_failed` remains at 0.00%. This demonstrates a basic security test using a performance testing tool.
+
+## Step 0.6: Thresholds
+
+### Run 1: Default Thresholds
+
+- **Virtual users:** 3
+- **Test duration:** 30 seconds
+- **Total HTTP requests:** 67
+- **Request rate:** 2.14 requests/second
+- **HTTP request duration (p95):** 392.68 ms
+- **HTTP request failure rate:** 0.00%
+- **Checks passed:** 100% (134/134)
+- **Thresholds:** 3/3 passed
+- **Exit code:** 0
+
+All three thresholds pass. The p(95) response time of 392.68 ms is below the default limit of 1,500 ms. The HTTP request failure rate is 0.00%, and all checks pass.
+
+### Run 2: Stricter Response-Time Threshold
+
+Command: `k6 run -e P95=300 06-thresholds.js`
+
+- **Virtual users:** 3
+- **Test duration:** 30 seconds
+- **Total HTTP requests:** 52
+- **Request rate:** 1.67 requests/second
+- **HTTP request duration (p95):** 388.81 ms
+- **HTTP request failure rate:** 1.92%
+- **Checks passed:** 98.07% (102/104)
+- **Thresholds:** 0/3 passed
+- **Exit code:** 99
+
+The test fails because all three thresholds are violated. The p(95) response time of 388.81 ms exceeds the 300 ms limit, the HTTP request failure rate of 1.92% exceeds the 1% limit, and the check pass rate of 98.07% is below the required 99%.
+
+During the second run, a connection error occurred while sending a request to the Pizza API. This caused a request failure and a script exception when the test attempted to parse a null response body as JSON. Therefore, the result includes a connection problem in addition to the stricter response-time threshold being violated.
