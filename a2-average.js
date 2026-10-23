@@ -2,8 +2,8 @@ import { journey } from './journey.js';
 
 export const options = {
   stages: [
-    { duration: '30s', target: 3 },
-    { duration: '2m', target: 3 },
+    { duration: '30s', target: 2 },
+    { duration: '10m', target: 2 }, 
     { duration: '30s', target: 0 },
   ],
   thresholds: {

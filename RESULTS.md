@@ -280,6 +280,39 @@ Use the timeline in `reports/a4-spike.html` to identify the response-time change
 
 All configured thresholds passed, all 196 checks succeeded, and none of the 147 HTTP requests failed. The overall results met the defined test requirements. The response-time impact and recovery period during the spike should be determined from the HTML report's time-series graphs.
 
+### Step A5: A Soak Test
+
+**Test objective:** Evaluate the endurance and stability of the QuickPizza service under a sustained load of two virtual users over an extended period (10-minute hold, 11 minutes total) to determine whether response times degrade or error rates increase over time.
+
+The `a5-soak.js` script ramps up to two virtual users over 30 seconds, sustains two users continuously for 10 minutes, and ramps down to zero over 30 seconds.
+
+**Test results:**
+
+| Metric | Result |
+|---|---:|
+| Maximum virtual users | 2 |
+| Total test duration | Approximately 11 minutes (11m 06s) |
+| Completed iterations | 214 |
+| Total HTTP requests | 642 |
+| Request rate | 0.96 requests/second |
+| Checks passed | 856/856 (100%) |
+| Checks failed | 0/856 (0%) |
+| HTTP request failure rate | 0.00% (0/642) |
+| Average HTTP request duration | 306.21 ms |
+| 95th percentile HTTP request duration (p(95)) | 381.04 ms |
+| Maximum HTTP request duration | 2.05 s |
+| Home page p(95) | 279.34 ms |
+| Recommendation p(95) | 391.51 ms |
+| Thresholds | All passed |
+
+**Comparison (First minutes vs. Last minutes):**
+
+Examining the time-series charts in `reports/a5-soak.html` shows that the response times remained stable throughout the entire 11-minute test. The response times in the initial minutes (averaging ~275–350 ms) remained consistent with those observed in the final minutes, with no upward drift or systematic degradation. The error rate stayed at 0.00% across the whole duration, and neither response times nor error rates worsened as the test proceeded.
+
+**Conclusion:**
+
+All configured thresholds passed with a 100% check success rate and 0.00% request failure rate across 642 requests. The QuickPizza application demonstrated high reliability and endurance under continuous moderate load, showing no evidence of resource exhaustion or memory leaks during the 11-minute run.
+
 ## Part A results
 
 | Step | Test type | Users | Req/s | p(95) | Max | Failed | Checks |
@@ -288,5 +321,5 @@ All configured thresholds passed, all 196 checks succeeded, and none of the 147 
 | A2 | Average load | 3 | 1.31 | 420.38ms | 1.7s | 0.00% | 100.00% |
 | A3 | Stress | 5 | 2.08 | 401.12ms | 10.28s | 0.26% | 99.60% |
 | A4 | Spike | 5 | 1.04 | 392.87ms | 1.14s | 0.00% | 100.00% |
-| A5 | Soak | 2 | | | | | |
+| A5 | Soak | 2 | 0.96 | 381.04ms | 2.05s | 0.00% | 100.00% |
 
