@@ -323,3 +323,96 @@ All configured thresholds passed with a 100% check success rate and 0.00% reques
 | A4 | Spike | 5 | 1.04 | 392.87ms | 1.14s | 0.00% | 100.00% |
 | A5 | Soak | 2 | 0.96 | 381.04ms | 2.05s | 0.00% | 100.00% |
 
+## Part B: Reflection
+
+### 1. Results Table for Steps A1 to A5
+
+| Step | Test type | Users | Req/s | p(95) | Max | Failed | Checks |
+|---|---|---:|---:|---:|---:|---:|---:|
+| A1 | Smoke | 1 | 0.45 | 1.13s | 1.21s | 0.00% | 100.00% |
+| A2 | Average load | 3 | 1.31 | 420.38ms | 1.7s | 0.00% | 100.00% |
+| A3 | Stress | 5 | 2.08 | 401.12ms | 10.28s | 0.26% | 99.60% |
+| A4 | Spike | 5 | 1.04 | 392.87ms | 1.14s | 0.00% | 100.00% |
+| A5 | Soak | 2 | 0.96 | 381.04ms | 2.05s | 0.00% | 100.00% |
+
+---
+
+### 2. Why was the request rate below 5 requests per second with 5 virtual users in Step 0.2?
+
+In K6, a virtual user executes iterations sequentially: it sends an HTTP request, waits for the server response, and then executes any configured sleep time (`sleep(1)`) before beginning the next iteration. 
+
+The total time for one iteration equals the response time plus the sleep duration:
+$$\text{Iteration duration} = \text{HTTP response time} + 1\text{ s}$$
+
+Because the server response time was around 280–300 ms, each VU completed an iteration in approximately 1.3 seconds, achieving about $\frac{1}{1.3} \approx 0.77$ requests per second. With 5 concurrent VUs, the total throughput was approximately $5 \times 0.77 \approx 3.85$ req/s, which is naturally below 5 req/s. A VU cannot send a new request until the previous response has been fully received and the sleep pause completes.
+
+---
+
+### 3. Did the response time grow from the average-load test to the stress test? Explain with the operational envelope.
+
+Comparing the overall $p(95)$ metrics, the response time did not grow significantly; it was 420.38 ms in A2 (3 VUs) and 401.12 ms in A3 (5 VUs). However, the **maximum response time surged drastically from 1.7 s up to 10.28 s**, and the request failure rate rose from 0.00% to 0.26% (1 failed request).
+
+**In terms of the operational envelope:**
+An operational envelope defines the operating boundaries within which a system delivers acceptable, stable performance:
+- At 3 users (A2), the system operated comfortably within its operational envelope, maintaining 100% check success, zero failures, and low latency.
+- At 5 users (A3), the system approached the edge of its operational envelope. While 99.6% of requests were handled within typical latency boundaries, resource contention or thread starvation caused an outlier request to hang for over 10 seconds and fail. This demonstrates that 5 users is nearing the saturation boundary of this service tier.
+
+---
+
+### 4. In the spike test, how long did the response time take to return to normal after the spike?
+
+In Step A4, the spike occurred between 00:30 and 01:05 (jumping rapidly from 1 to 5 VUs). 
+
+According to the HTML report (`reports/a4-spike.html`), during the 5-VU surge, the response time experienced temporary fluctuation and slightly elevated latency. Once the load ramped down back to 1 VU at 01:10, response times normalized back to baseline levels (~275–300 ms) within approximately **5 to 10 seconds**. The system demonstrated fast recovery without lingering queue buildup.
+
+---
+
+### 5. In the soak test, did the response time or the error rate get worse over time? Name one kind of defect that a soak test of several hours could reveal.
+
+During the 11-minute soak test (A5), neither the response time nor the error rate deteriorated:
+- The error rate remained strictly at **0.00%** across all 642 requests.
+- Average response times in the initial minutes (~275–350 ms) remained consistent through the final minutes, with an overall $p(95)$ of 381.04 ms.
+
+**Defect revealed by a long soak test:**
+A multi-hour soak test is primarily designed to uncover **memory leaks** (or database connection pool leaks). Under short tests, a small memory leak goes unnoticed; over hours of sustained execution, accumulating unreleased heap memory leads to progressive degradation, severe garbage collection pauses, and eventually an `OutOfMemoryError` crash.
+
+---
+
+### 6. Why do the thresholds in this lab use p(95) rather than the average?
+
+The arithmetic average (mean) is easily skewed and can mask severe user experience problems:
+1. **Masking outliers:** If 95% of users receive responses in 200 ms but 5% suffer a catastrophic 10-second wait, the average might still look deceptively acceptable (~690 ms), hiding the fact that 1 in 20 customers has a terrible experience.
+2. **Actionable SLA:** The 95th percentile ($p(95)$) measures the experience of the vast majority while explicitly capturing tails. It guarantees that 95% of users experienced a response time at or faster than the threshold value, providing a much more reliable indicator of quality of service.
+
+---
+
+### 7. Reasons why testing against a lab system could give different numbers than a shared public site
+
+1. **Absence of Internet latency and jitter:** A local/lab network (LAN) has sub-millisecond network latency and high bandwidth, whereas reaching `quickpizza.grafana.com` over the public internet introduces variable routing, packet loss, DNS lookup overhead, and regional ISP latency.
+2. **No shared multi-tenant background noise:** The public site is shared with other external internet users running arbitrary loads simultaneously, introducing noisy-neighbor interference. In a dedicated lab environment, the system under test has dedicated compute, memory, and database resources with no competing workloads.
+
+---
+
+### 8. Why must you never run stress, spike, or breakpoint tests with hundreds of users against an unowned site?
+
+1. **Denial of Service (DoS):** Flooding an unowned site can saturate its bandwidth, CPU, and database connections, causing service outages for legitimate customers.
+2. **Financial impact:** Many cloud-hosted services auto-scale or charge per API call, compute seconds, or egress traffic. An uncoordinated load test can inflict substantial infrastructure bills on the owner.
+3. **Legal and ethical violations:** Generating uncoordinated massive traffic is legally classified as an unauthorized cyberattack (Distributed Denial of Service) and violates acceptable use policies (AUP), which can result in legal prosecution or ISP blacklisting.
+
+---
+
+### 9. Real-World App Performance Requirement Rewrite
+
+- **Everyday app:** Spotify (Search functionality)
+- **Vague requirement:** *"Searching for songs in the app should feel fast and not fail."*
+- **Testable requirement:** *"When executing search queries under an average load of 50 concurrent users, at least 99% of requests must return HTTP status 200, the overall request failure rate must be less than 0.5%, and 95% of search requests must complete in under 400 ms."*
+
+**K6 Thresholds implementation:**
+```javascript
+export const options = {
+  thresholds: {
+    checks: ['rate>0.99'],
+    http_req_failed: ['rate<0.005'],
+    http_req_duration: ['p(95)<400'],
+  },
+};
