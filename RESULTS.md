@@ -237,6 +237,49 @@ The request rate increased from 1.31 requests/second in Step A2 to 2.08 requests
 
 All configured thresholds passed during the stress test. However, one HTTP request failed, causing two checks related to the recommendation response to fail. The maximum response time of 10.28 seconds also indicates a slow outlier, even though the overall p(95) remained below the endpoint-specific thresholds. These results show why response-time percentiles, maximum response time, request failures, and checks should be considered together when evaluating performance under higher load.
 
+### Step A4: A Spike Test
+
+**Test objective:** Observe how the QuickPizza application responds to a sudden increase in virtual users and determine whether response times rise during the spike and how long they take to return to their earlier level.
+
+The `a4-spike.js` script uses six stages:
+1. Maintain 1 virtual user for 30 seconds.
+2. Ramp up to 5 virtual users over 5 seconds.
+3. Maintain 5 virtual users for 30 seconds.
+4. Ramp down to 1 virtual user over 5 seconds.
+5. Maintain 1 virtual user for 1 minute.
+6. Ramp down to 0 users over 10 seconds.
+
+**Test results:**
+
+| Metric | Result |
+|---|---:|
+| Maximum virtual users | 5 |
+| Total test duration | Approximately 2 minutes 20 seconds |
+| Completed iterations | 49 |
+| Total HTTP requests | 147 |
+| Request rate | 1.04 requests/second |
+| Checks passed | 196/196 (100%) |
+| Checks failed | 0/196 (0%) |
+| HTTP request failure rate | 0.00% |
+| Average HTTP request duration | 323.26 ms |
+| 95th percentile HTTP request duration (p(95)) | 392.87 ms |
+| Maximum HTTP request duration | 1.14 s |
+| Home page p(95) | 297.97 ms |
+| Recommendation p(95) | 413.27 ms |
+| Thresholds | All passed |
+
+**Spike and recovery analysis:**
+
+The test was designed to introduce a sudden increase from 1 to 5 virtual users between approximately 30 and 35 seconds into the run. The load remained at 5 users for 30 seconds before dropping back to 1 user between approximately 65 and 70 seconds.
+
+The terminal summary shows an overall p(95) response time of 392.87 ms and a maximum response time of 1.14 seconds. However, these aggregate values do not establish exactly how response time changed during the spike or how long recovery took.
+
+Use the timeline in `reports/a4-spike.html` to identify the response-time change during the spike and when it returns to approximately its pre-spike level.
+
+**Conclusion:**
+
+All configured thresholds passed, all 196 checks succeeded, and none of the 147 HTTP requests failed. The overall results met the defined test requirements. The response-time impact and recovery period during the spike should be determined from the HTML report's time-series graphs.
+
 ## Part A results
 
 | Step | Test type | Users | Req/s | p(95) | Max | Failed | Checks |
@@ -244,6 +287,6 @@ All configured thresholds passed during the stress test. However, one HTTP reque
 | A1 | Smoke | 1 | 0.45 | 1.13s | 1.21s | 0.00% | 100.00% |
 | A2 | Average load | 3 | 1.31 | 420.38ms | 1.7s | 0.00% | 100.00% |
 | A3 | Stress | 5 | 2.08 | 401.12ms | 10.28s | 0.26% | 99.60% |
-| A4 | Spike | 5 | | | | | |
+| A4 | Spike | 5 | 1.04 | 392.87ms | 1.14s | 0.00% | 100.00% |
 | A5 | Soak | 2 | | | | | |
 
