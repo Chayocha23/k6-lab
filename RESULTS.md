@@ -205,13 +205,45 @@ The results indicate that the user journey met the defined performance requireme
 
 The command was configured to export an HTML report to `reports/a2-average.html`. Verify that the report file exists and opens successfully before considering the report deliverable complete.
 
+### Step A3: A Stress Test
+
+**Test objective:** Evaluate the QuickPizza user journey under a higher load of up to five virtual users and compare its response-time performance with the average-load test in Step A2.
+
+The `a3-stress.js` script is based on `a2-average.js`. It ramps up to five virtual users over 30 seconds, maintains five users for two minutes, and then ramps down to zero users over 30 seconds. The test uses the same thresholds as Step A2 to check overall test quality, HTTP request failures, and response times for the home page and recommendation endpoint.
+
+**Test results:**
+
+| Metric | Result |
+|---|---:|
+| Maximum virtual users | 5 |
+| Completed iterations | 128 |
+| Total HTTP requests | 384 |
+| Request rate | 2.08 requests/second |
+| Checks passed | 510/512 (99.60%) |
+| Checks failed | 2/512 (0.39%) |
+| HTTP request failure rate | 0.26% (1/384) |
+| Average HTTP request duration | 355.78 ms |
+| 95th percentile HTTP request duration (p(95)) | 401.12 ms |
+| Maximum HTTP request duration | 10.28 s |
+| Home page p(95) | 300.5 ms |
+| Recommendation p(95) | 410.02 ms |
+| Thresholds | All passed |
+
+**Comparison with Step A2:**
+
+The request rate increased from 1.31 requests/second in Step A2 to 2.08 requests/second in Step A3. The overall p(95) response time decreased slightly from 420.38 ms to 401.12 ms. However, the maximum response time increased from 1.7 seconds to 10.28 seconds, and the HTTP request failure rate increased from 0.00% to 0.26%.
+
+**Conclusion:**
+
+All configured thresholds passed during the stress test. However, one HTTP request failed, causing two checks related to the recommendation response to fail. The maximum response time of 10.28 seconds also indicates a slow outlier, even though the overall p(95) remained below the endpoint-specific thresholds. These results show why response-time percentiles, maximum response time, request failures, and checks should be considered together when evaluating performance under higher load.
+
 ## Part A results
 
 | Step | Test type | Users | Req/s | p(95) | Max | Failed | Checks |
 |---|---|---:|---:|---:|---:|---:|---:|
 | A1 | Smoke | 1 | 0.45 | 1.13s | 1.21s | 0.00% | 100.00% |
 | A2 | Average load | 3 | 1.31 | 420.38ms | 1.7s | 0.00% | 100.00% |
-| A3 | Stress | 5 | | | | | |
+| A3 | Stress | 5 | 2.08 | 401.12ms | 10.28s | 0.26% | 99.60% |
 | A4 | Spike | 5 | | | | | |
 | A5 | Soak | 2 | | | | | |
 
