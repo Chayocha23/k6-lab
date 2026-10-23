@@ -106,3 +106,4 @@ All three performance requirements pass. The measured p(95) and p(99) are both b
 - **Exit code:** 99
 
 The test fails because the measured p(95) of 400.83 ms exceeds the stricter 300 ms limit. The p(99) and HTTP request failure rate requirements still pass. k6 exits with code 99 because the `http_req_duration` threshold is violated.
+
