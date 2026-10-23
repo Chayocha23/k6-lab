@@ -130,3 +130,88 @@ All three checks passed: the response status was 200, the pizza contained no pep
 
 A single manual request may return a pizza that satisfies the customer's requirements by chance. Repeated requests allow the checks to examine many recommendations and increase the chance of detecting results that contain excluded ingredients or require excluded tools. In this run, all 74 responses satisfied the checks.
 
+## Part A: A User Journey and the Load Test Types
+
+### Step A1: The User Journey and a Smoke Test
+
+**Test objective:** Verify that one user can complete the QuickPizza journey successfully before running larger load tests.
+
+The `journey.js` script defines a user journey with three groups:
+
+1. **Home:** Open the home page and verify that the response status is 200.
+2. **Quotes:** Retrieve the quotes and verify that the response is successful and contains at least one quote.
+3. **Recommendation:** Request a vegetarian pizza and verify that the response status is 200 and the pizza has a name.
+
+The `a1-smoke.js` script runs this journey with one virtual user (VU) for 30 seconds. The test also defines thresholds requiring a check success rate above 99% and an HTTP request failure rate below 1%.
+
+**Test results:**
+
+| Metric | Result |
+|---|---:|
+| Virtual users | 1 |
+| Configured test duration | 30 seconds |
+| Completed iterations | 5 |
+| Total HTTP requests | 15 |
+| Checks passed | 20/20 (100%) |
+| Checks failed | 0/20 (0%) |
+| HTTP request failure rate | 0.00% |
+| Average HTTP request duration | 469.25 ms |
+| 95th percentile HTTP request duration (p(95)) | 1.13 s |
+| Maximum HTTP request duration | 1.21 s |
+| Thresholds | All passed |
+
+**Conclusion:**
+
+The smoke test passed. All 20 checks succeeded, the HTTP request failure rate was 0%, and both configured thresholds were satisfied. The results indicate that the user journey worked successfully under this light-load scenario, so the test can proceed to larger load tests.
+
+The run completed five iterations and made 15 HTTP requests, corresponding to three requests per journey. The reported total runtime was approximately 33.5 seconds, including the configured 30-second execution period and shutdown.
+
+### Step A2: The Average-Load Test and an HTML Report
+
+**Test objective:** Evaluate the QuickPizza user journey under an average load of up to three virtual users and generate an HTML report for reviewing performance throughout the test.
+
+The `a2-average.js` script reuses the journey defined in `journey.js`. The test ramps up to three virtual users over 30 seconds, maintains three users for two minutes, and then ramps down to zero users over 30 seconds.
+
+The test defines four thresholds:
+- Overall check success rate must be greater than 99%.
+- HTTP request failure rate must be below 1%.
+- The home page's p(95) response time must be below 1,000 ms.
+- The recommendation endpoint's p(95) response time must be below 1,500 ms.
+
+**Test results:**
+
+| Metric | Result |
+|---|---:|
+| Maximum virtual users | 3 |
+| Total test duration | Approximately 3 minutes |
+| Completed iterations | 79 |
+| Total HTTP requests | 237 |
+| Request rate | 1.31 requests/second |
+| Checks passed | 316/316 (100%) |
+| Checks failed | 0/316 (0%) |
+| HTTP request failure rate | 0.00% |
+| Average HTTP request duration | 347.96 ms |
+| 95th percentile HTTP request duration (p(95)) | 420.38 ms |
+| Maximum HTTP request duration | 1.7 s |
+| Home page p(95) | 969.45 ms |
+| Recommendation p(95) | 428.71 ms |
+| Thresholds | All passed |
+
+**Conclusion:**
+
+The average-load test passed all four configured thresholds. All 316 checks succeeded, and none of the 237 HTTP requests failed. The home page's p(95) response time was 969.45 ms, below its 1,000 ms threshold, while the recommendation endpoint's p(95) was 428.71 ms, below its 1,500 ms threshold.
+
+The results indicate that the user journey met the defined performance requirements under a load of up to three virtual users during this run.
+
+The command was configured to export an HTML report to `reports/a2-average.html`. Verify that the report file exists and opens successfully before considering the report deliverable complete.
+
+## Part A results
+
+| Step | Test type | Users | Req/s | p(95) | Max | Failed | Checks |
+|---|---|---:|---:|---:|---:|---:|---:|
+| A1 | Smoke | 1 | 0.45 | 1.13s | 1.21s | 0.00% | 100.00% |
+| A2 | Average load | 3 | 1.31 | 420.38ms | 1.7s | 0.00% | 100.00% |
+| A3 | Stress | 5 | | | | | |
+| A4 | Spike | 5 | | | | | |
+| A5 | Soak | 2 | | | | | |
+
