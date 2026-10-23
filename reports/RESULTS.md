@@ -107,3 +107,26 @@ All three performance requirements pass. The measured p(95) and p(99) are both b
 
 The test fails because the measured p(95) of 400.83 ms exceeds the stricter 300 ms limit. The p(99) and HTTP request failure rate requirements still pass. k6 exits with code 99 because the `http_req_duration` threshold is violated.
 
+## Step 0.8: Bug Hunt Checkpoint
+
+### Investigation
+
+The `explore.js` script was used to inspect the API's available ingredients and tools. The API returned ingredient names such as `Pepperoni` and tool names such as `Knife`.
+
+### Verification After Fix
+
+- **Virtual users:** 5
+- **Test duration:** 20 seconds
+- **Total HTTP requests:** 74
+- **Request rate:** 3.49 requests/second
+- **HTTP request duration (p95):** 405.66 ms
+- **HTTP request failure rate:** 0.00%
+- **Checks passed:** 100% (222/222)
+- **Checks failed:** 0 (0%)
+
+All three checks passed: the response status was 200, the pizza contained no pepperoni, and it did not require a knife. The test results confirm that all 74 responses satisfied the defined checks during this run.
+
+### Why Testing Under Load Helps
+
+A single manual request may return a pizza that satisfies the customer's requirements by chance. Repeated requests allow the checks to examine many recommendations and increase the chance of detecting results that contain excluded ingredients or require excluded tools. In this run, all 74 responses satisfied the checks.
+
