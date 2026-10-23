@@ -76,3 +76,33 @@ Command: `k6 run -e P95=300 06-thresholds.js`
 The test fails because all three thresholds are violated. The p(95) response time of 388.81 ms exceeds the 300 ms limit, the HTTP request failure rate of 1.92% exceeds the 1% limit, and the check pass rate of 98.07% is below the required 99%.
 
 During the second run, a connection error occurred while sending a request to the Pizza API. This caused a request failure and a script exception when the test attempted to parse a null response body as JSON. Therefore, the result includes a connection problem in addition to the stricter response-time threshold being violated.
+
+## Step 0.7: From a Requirement to Thresholds
+
+### Run 1: Original Requirement
+
+**Requirement:** With 3 users sending requests concurrently for 30 seconds, the API must answer 95% of requests within 1 second, 99% within 1.5 seconds, and have a request failure rate below 1%.
+
+- **Virtual users:** 3
+- **Test duration:** 30 seconds
+- **Total HTTP requests:** 66
+- **p(95):** 392.4 ms — PASS (`p(95)<1000`)
+- **p(99):** 397.48 ms — PASS (`p(99)<1500`)
+- **HTTP request failure rate:** 0.00% — PASS (`rate<0.01`)
+- **Exit code:** 0
+
+All three performance requirements pass. The measured p(95) and p(99) are both below their respective limits, and no HTTP requests fail.
+
+### Run 2: Stricter p(95) Requirement
+
+**Changed requirement:** The API must answer 95% of requests within 300 ms instead of 1 second. The other requirements remain unchanged.
+
+- **Virtual users:** 3
+- **Test duration:** 30 seconds
+- **Total HTTP requests:** 66
+- **p(95):** 400.83 ms — FAIL (`p(95)<300`)
+- **p(99):** 408.34 ms — PASS (`p(99)<1500`)
+- **HTTP request failure rate:** 0.00% — PASS (`rate<0.01`)
+- **Exit code:** 99
+
+The test fails because the measured p(95) of 400.83 ms exceeds the stricter 300 ms limit. The p(99) and HTTP request failure rate requirements still pass. k6 exits with code 99 because the `http_req_duration` threshold is violated.
